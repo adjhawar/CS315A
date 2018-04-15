@@ -24,7 +24,7 @@ Connection con=DriverManager.getConnection(
 "jdbc:mysql://localhost:3306/reservation_system","root","root");  
 //here sonoo is database name, root is username and password  
 Statement stmt=con.createStatement();  
-ResultSet rs=stmt.executeQuery("select seats from train where id = %d",train_id);  
+ResultSet rs=stmt.executeQuery("select seats from train where id ="+ train_id);  
 return rs.getInt(1);
 con.close();  
 }catch(Exception e){ System.out.println(e);} 
@@ -38,7 +38,7 @@ Connection con=DriverManager.getConnection(
 "jdbc:mysql://localhost:3306/reservation_system","root","root");  
 //here sonoo is database name, root is username and password  
 Statement stmt=con.createStatement();  
-ResultSet rs=stmt.executeQuery("select fare from train where id = %d",train_id);  
+ResultSet rs=stmt.executeQuery("select fare from train where id = "+train_id);  
 return rs.getInt(1);
 con.close();  
 }catch(Exception e){ System.out.println(e);} 
@@ -52,7 +52,7 @@ Connection con=DriverManager.getConnection(
 "jdbc:mysql://localhost:3306/reservation_system","root","root");  
 //here sonoo is database name, root is username and password  
 Statement stmt=con.createStatement();  
-ResultSet rs=stmt.executeQuery("select id from train where src = %s && dest = %s",src,dest);  
+ResultSet rs=stmt.executeQuery("select id from train where src =" + src + "&& dest = " + dest);  
 return rs.getInt(1);
 con.close();  
 }catch(Exception e){ System.out.println(e);} 
