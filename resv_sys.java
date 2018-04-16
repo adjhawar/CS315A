@@ -57,31 +57,51 @@ class Reservation_System{
 
 	int get_seats(int train_id)
 	{
+		int s;		
 		try{  
 			Class.forName("com.mysql.jdbc.Driver");  
 			Connection con=DriverManager.getConnection("jdbc:mysql://localhost:3306/reservation_system","root","root");  
 			Statement stmt=con.createStatement();  
 			ResultSet rs=stmt.executeQuery("select seats from train where id ="+ train_id);  
-			con.close(); 
 			rs.next();			
-			return rs.getInt(1); 
+			s=rs.getInt(1);
+			con.close(); 
+			return s; 
 		}catch(Exception e){ System.out.println("Enter a valid train number");
 			return -1;} 
 	}
 
 	int get_fare(int train_id)
 	{
+		int f;		
 		try{  
 			Class.forName("com.mysql.jdbc.Driver");  
 			Connection con=DriverManager.getConnection("jdbc:mysql://localhost:3306/reservation_system","root","root");  
 			Statement stmt=con.createStatement();  
 			ResultSet rs=stmt.executeQuery("select fare from train where id = "+train_id);  
-			con.close();  
 			rs.next();						
-			return rs.getInt(1);
+			f=rs.getInt(1);
+			con.close();
+			return f;
 		}catch(Exception e){ System.out.println("Enter a valid train id");
 			return 0;} 
 	}  
+
+	int get_directFare(String src, String dest)
+	{
+		int f;
+		try{  
+			Class.forName("com.mysql.jdbc.Driver");  
+			Connection con=DriverManager.getConnection("jdbc:mysql://localhost:3306/reservation_system","root","root");  
+			Statement stmt=con.createStatement();  
+			ResultSet rs=stmt.executeQuery("select fare from train where src = ( select code from stations where name = \""+src+"\") and dest = (select code from stations where name = \"" + dest + "\")");  
+			rs.next();
+			f=rs.getInt(1);
+			con.close(); 
+			return f; 
+		}catch(Exception e){ System.out.println("Sorry, there are no stations with the given input name");
+			return 0;} 
+	}
 
 	void get_train(String src, String dest)
 	{
@@ -89,7 +109,7 @@ class Reservation_System{
 			Class.forName("com.mysql.jdbc.Driver");  
 			Connection con=DriverManager.getConnection("jdbc:mysql://localhost:3306/reservation_system","root","root");  
 			Statement stmt=con.createStatement();  
-			ResultSet rs=stmt.executeQuery("select id,name from train where src =" + src + " and dest = " + dest);
+			ResultSet rs=stmt.executeQuery("select id,name from train where src = ( select code from stations where name = \""+src+"\") and dest =  (select code from stations where name = \"" + dest + "\")"); 
 			System.out.println("Train ID, Train Name");
 			while(rs.next()){
 				System.out.println(rs.getInt(1)+","+rs.getString(2));}  
@@ -103,9 +123,10 @@ class Reservation_System{
 			Class.forName("com.mysql.jdbc.Driver");  
 			Connection con=DriverManager.getConnection("jdbc:mysql://localhost:3306/reservation_system","root","root");  
 			Statement stmt=con.createStatement();  
-			String query = " delete from tickets where pnr=?";
+			String query = "delete from ticket where pnr=?";
 			PreparedStatement preparedStmt = con.prepareStatement(query);
 			preparedStmt.setInt (1,pnr); 
+			preparedStmt.execute();
 			con.close();
 			System.out.println("Ticket successfully cancelled");
 		}catch(Exception e){ System.out.println("Invalid PNR");} 
@@ -113,12 +134,12 @@ class Reservation_System{
 	
 	int book(int tid,String src,String dest,int seats)
 	{
-		int avl_seats,ticket;
+		int avl_seats,ticket=0;
 		try{  
 			Class.forName("com.mysql.jdbc.Driver");  
 			Connection con=DriverManager.getConnection("jdbc:mysql://localhost:3306/reservation_system","root","root");  
 			Statement stmt=con.createStatement();  
-			ResultSet rs=stmt.executeQuery("select seats from train where id ="+tid+" and src="+src+" dest="+dest);
+			ResultSet rs=stmt.executeQuery("select seats from train where id ="+tid+" and src=\""+src+"\" and dest=\""+dest+"\"");
 			rs.next();
 			avl_seats=rs.getInt(1);
 			con.close();  
@@ -139,19 +160,21 @@ class Reservation_System{
 			preparedStmt.setInt (1,avl_seats );
 			preparedStmt.setInt (2, tid);
 			preparedStmt.execute();
-			query="insert into tickets values(?,?,?,?,?,?)";
-			preparedStmt = con1.prepareStatement(query);
-			preparedStmt.setInt (1, tid );
-			preparedStmt.setString (2, src);
-			preparedStmt.setString (3, dest);
-			preparedStmt.setString (4, username);
-			preparedStmt.setInt (5, seats);
-			preparedStmt.setInt (6, seats*get_fare(tid));
-			preparedStmt.execute();
-			ResultSet rs=preparedStmt.getGeneratedKeys();
+			String query2="insert into ticket values(?,?,?,?,?,?,?)";
+			PreparedStatement preparedStmt1 = con1.prepareStatement(query2);
+			preparedStmt1.setInt (1, 0);
+			preparedStmt1.setInt (2, tid );
+			preparedStmt1.setString (3, src);
+			preparedStmt1.setString (4, dest);
+			preparedStmt1.setString (5, username);
+			preparedStmt1.setInt (6, seats);
+			preparedStmt1.setInt (7, seats*get_fare(tid));
+			preparedStmt1.execute();
+			ResultSet rs=preparedStmt1.getGeneratedKeys();
 			rs.next();
+			ticket=rs.getInt(1);
 			con1.close();  
-			return rs.getInt(1);
+			return ticket;
 		}catch(Exception e1){
 			System.out.println("Ticket creation failed");
 			return 0;} 
@@ -163,9 +186,9 @@ class Reservation_System{
 			Class.forName("com.mysql.jdbc.Driver");  
 			Connection con=DriverManager.getConnection("jdbc:mysql://localhost:3306/reservation_system","root","root");  
 			Statement stmt=con.createStatement();  
-			ResultSet rs=stmt.executeQuery("select * from tickets where pnr =" + pnr);
+			ResultSet rs=stmt.executeQuery("select * from ticket where pnr =" + pnr);
 			rs.next();
-			System.out.println(rs.getInt(1)+","+rs.getString(2));  
+			System.out.println(rs.getInt(1)+","+rs.getInt(2)+","+rs.getString(3)+","+rs.getString(4)+","+rs.getString(5)+","+rs.getInt(6)+","+rs.getInt(7));  
 			con.close();  
 		}catch(Exception e){ System.out.println("Invalid PNR");} 
 	}
@@ -214,11 +237,13 @@ class Reservation_System{
 						else
 							System.out.println("No available seats on train id:"+tid); 
 						break;
-					case 3: System.out.println("Enter the train id");
-						tid=Integer.parseInt(br.readLine());
+					case 3: System.out.print("Enter the source and estination station name.\nSource:");
+						src=br.readLine();
+						System.out.print("Destination:");
+						dest=br.readLine();
 						System.out.println("Enter the number of seats");
 						seats=Integer.parseInt(br.readLine());
-						fare=obj.get_fare(tid);
+						fare=obj.get_directFare(src,dest);
 						if(fare>0)
 							System.out.println("Your fare is:"+fare*seats);
 						break;
@@ -242,7 +267,7 @@ class Reservation_System{
 						pnr=Integer.parseInt(br.readLine());
 						obj.display(pnr);
 						break;
-					default: System.out.println("Loggind out "+username);
+					default: System.out.println("Logging out "+username);
 						 username="";
 						 choice=1;
 						 x=0;
